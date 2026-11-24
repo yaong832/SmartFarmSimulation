@@ -29,6 +29,9 @@ namespace SmartFarmUI
         private bool ethercatPowerOn = false;
         private int currentFarm = 1;
         private readonly List<string> logHistory = new List<string>();
+        // 로그를 메모리에 최대 몇 줄까지 둘지. 넘으면 오래된 줄부터 버린다.
+        // (오래 켜 두면 목록이 끝없이 커지고, 로그 창이 한 줄마다 전체를 다시 그려 느려지던 문제)
+        private const int MaxLogHistory = 2000;
         private LogForm logForm;
         private readonly Dictionary<int, SensorThreshold[]> farmSettings = new Dictionary<int, SensorThreshold[]>();
         private readonly Dictionary<int, string> farmCropNames = new Dictionary<int, string>();
@@ -1893,6 +1896,7 @@ namespace SmartFarmUI
                     {
                         logHistory.Clear();
                         logHistory.AddRange(logs);
+                        TrimLogHistory();
                         UpdateLogPreview();
                         if (logForm != null && !logForm.IsDisposed)
                             logForm.UpdateLogs(logHistory);
@@ -2051,6 +2055,7 @@ namespace SmartFarmUI
             string time = DateTime.Now.ToString("HH:mm:ss");
             string logEntry = $"[{time}] {message}";
             logHistory.Add(logEntry);
+            TrimLogHistory();
             UpdateLogPreview();
             if (logForm != null && !logForm.IsDisposed)
             {
@@ -2082,6 +2087,7 @@ namespace SmartFarmUI
                                  $"상태:{status}";
                 
                 logHistory.Add(logEntry);
+                TrimLogHistory();
                 lastSensorLogTime = DateTime.Now;
                 UpdateLogPreview();
                 if (logForm != null && !logForm.IsDisposed)
@@ -2138,6 +2144,16 @@ namespace SmartFarmUI
         private string[] GetLogEntries()
         {
             return logHistory.ToArray();
+        }
+
+        // 최대 줄 수를 넘으면 가장 오래된 줄부터 지운다.
+        private void TrimLogHistory()
+        {
+            int overflow = logHistory.Count - MaxLogHistory;
+            if (overflow > 0)
+            {
+                logHistory.RemoveRange(0, overflow);
+            }
         }
 
         private void UpdateLogPreview()
